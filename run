@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# Ensure Wayfire and its plugins are installed
+echo "Installing Wayfire and Wayfire plugins..."
+sudo pacman -S wayfire wayfire-plugins-extra wf-shell --noconfirm || \
+sudo apt install wayfire wayfire-plugins-extra wf-shell -y || \
+sudo dnf install wayfire wayfire-plugins-extra wf-shell -y || \
+echo "Please install Wayfire manually if your package manager isn't recognized."
+
+# Download and set up wf-autotiling if not already installed
+if ! command -v wf-autotiling &> /dev/null
+then
+    echo "Installing wf-autotiling for dynamic tiling..."
+    git clone https://github.com/ammen99/wf-autotiling.git
+    cd wf-autotiling
+    sudo make install
+    cd ..
+    rm -rf wf-autotiling
+else
+    echo "wf-autotiling is already installed."
+fi
+
+# Configure Wayfire plugins (grid and tiling if available)
+WAYFIRE_CONFIG_DIR="$HOME/.config"
+WAYFIRE_CONFIG_FILE="$WAYFIRE_CONFIG_DIR/wayfire.ini"
+
+# Ensure Wayfire config directory exists
+mkdir -p "$WAYFIRE_CONFIG_DIR"
+
+# Enable grid plugin in Wayfire configuration
+echo "Configuring Wayfire grid plugin for tiling..."
+
+if grep -q "\[grid\]" "$WAYFIRE_CONFIG_FILE"; then
+    sed -i '/\[grid\]/!b;n;c\enable = true' "$WAYFIRE_CONFIG_FILE"
+else
+    echo -e "\n[grid]\nenable = true" >> "$WAYFIRE_CONFIG_FILE"
+fi
+
+# Enable tiling plugin if available
+echo "Configuring tiling plugin if available..."
+if grep -q "\[tiling\]" "$WAYFIRE_CONFIG_FILE"; then
+    sed -i '/\[tiling\]/!b;n;c\enable = true' "$WAYFIRE_CONFIG_FILE"
+else
+    echo -e "\n[tiling]\nenable = true" >> "$WAYFIRE_CONFIG_FILE"
+fi
+
+# Add wf-autotiling to Wayfire autostart
+if ! grep -q "\[wf-autotiling\]" "$WAYFIRE_CONFIG_FILE"; then
+    echo -e "\n[wf-autotiling]\nenable = true" >> "$WAYFIRE_CONFIG_FILE"
+fi
+
+echo "Setup complete. Restart Wayfire for the changes to take effect."
